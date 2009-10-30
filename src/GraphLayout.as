@@ -12,10 +12,12 @@ package
 	import flare.vis.controls.ExpandControl;
 	import flare.vis.controls.PanZoomControl;
 	import flare.vis.data.Data;
+	import flare.vis.data.DataSprite;
 	import flare.vis.data.NodeSprite;
 	import flare.vis.operator.OperatorList;
 	import flare.vis.operator.encoder.ColorEncoder;
 	import flare.vis.operator.encoder.SizeEncoder;
+	import flare.vis.operator.filter.VisibilityFilter;
 	import flare.vis.operator.label.Labeler;
 	import flare.vis.operator.layout.Layout;
 	import flare.vis.operator.layout.NodeLinkTreeLayout;
@@ -47,7 +49,7 @@ package
  
         private function loadData():void
         {
-            var ds:DataSource = new DataSource( "final1.xml", "graphml" );
+            var ds:DataSource = new DataSource( "testing_graph.xml", "graphml" );
             loader = ds.load();
             loader.addEventListener( Event.COMPLETE, processData );
         }
@@ -56,6 +58,7 @@ package
         {
     		trace("Done");
             var dataSet:DataSet = loader.data as DataSet;
+            
             visualize( Data.fromDataSet( dataSet ) );
    		}
  
@@ -81,7 +84,7 @@ package
 			// Method #1
 			// Un-named operators
 			vis.operators.add( treeLayout );
-			vis.update();
+//			vis.update();
 			
 			// Method #2
 			// Named operators
@@ -115,7 +118,22 @@ package
 
 			// Color the nodes
 			colorNodes();
-			colorByCentrality();
+			colorEdges();
+			//colorByCentrality();
+			
+			//playing with filters
+			vis.setOperator("filter", new VisibilityFilter(filter));
+			vis.update(null, "filter").play();
+        }
+        
+        private function filter(d:DataSprite):Boolean {
+        	var id:String = String(d.data["id"]).toLowerCase();
+        	var source:String = String(d.data["source"]).toLowerCase();
+        	var target:String = String(d.data["target"]).toLowerCase();
+        	
+        	if (id == "flare.analytics" || source == "flare.analytics" || target == "flare.analytics")
+        		return false;
+        	return true;
         }
         
 		private function addLabels():void
@@ -136,6 +154,13 @@ package
 			);
             vis.update( 2, "size" ).play();
 		}
+				
+		private function colorEdges():void 
+		{
+			var colors:Array = [0xffffffff, 0xff000000];
+			vis.setOperator( "edgeColor", new OperatorList(new ColorEncoder("data.hidden", Data.EDGES, "lineColor", ScaleType.CATEGORIES, ColorPalette.category(2, colors, 1.0))));
+			vis.update(null, "edgeColor").play();
+		}		
 				
 		private function colorByCentrality():void
 		{
